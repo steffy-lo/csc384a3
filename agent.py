@@ -35,21 +35,21 @@ def compute_heuristic(board, color): #not implemented, optional
 def minimax_min_node(board, color, limit, caching=0):
     #IMPLEMENT
 
-    if board in minimax_val:
+    if caching == 1 and board in minimax_val:
         return minimax_val[board]
-
-    moves = get_possible_moves(board, color)
-    terminal = (len(moves) == 0)
 
     next_color = 2 if color == 1 else 1
 
+    moves = get_possible_moves(board, next_color)
+    terminal = (len(moves) == 0)
+
     if terminal or limit == 0:
-        return None, compute_utility(board, next_color)
+        return None, compute_utility(board, color)
     else:
         utilities = []
         for move in moves:
-            successor_state = play_move(board, color, move[0], move[1])
-            u = minimax_max_node(successor_state, next_color, limit - 1)[1]
+            successor_state = play_move(board, next_color, move[0], move[1])
+            u = minimax_max_node(successor_state, color, limit - 1)[1]
             utilities.append(u)
 
         best_move = moves[utilities.index(min(utilities))], min(utilities)
@@ -62,13 +62,11 @@ def minimax_min_node(board, color, limit, caching=0):
 def minimax_max_node(board, color, limit, caching=0): #returns highest possible utility
     #IMPLEMENT
 
-    if board in minimax_val:
+    if caching == 1 and board in minimax_val:
         return minimax_val[board]
 
     moves = get_possible_moves(board, color)
     terminal = (len(moves) == 0)
-
-    next_color = 2 if color == 1 else 1
 
     if terminal or limit == 0:
         return None, compute_utility(board, color)
@@ -76,7 +74,7 @@ def minimax_max_node(board, color, limit, caching=0): #returns highest possible 
         utilities = []
         for move in moves:
             successor_state = play_move(board, color, move[0], move[1])
-            u = minimax_min_node(successor_state, next_color, limit-1)[1]
+            u = minimax_min_node(successor_state, color, limit-1)[1]
             utilities.append(u)
 
         best_move = moves[utilities.index(max(utilities))], max(utilities)
@@ -105,12 +103,11 @@ def select_move_minimax(board, color, limit=sys.maxsize, caching=0):
     # Implement recursively using minimax_max_node(board, color) and minimax_min_node(board, color)
 
     moves = get_possible_moves(board, color)
-    next_color = 2 if color == 1 else 1
 
     utilities = []
     for move in moves:
         successor_state = play_move(board, color, move[0], move[1])
-        u = minimax_min_node(successor_state, next_color, limit, caching)[1]
+        u = minimax_min_node(successor_state, color, limit, caching)[1]
         utilities.append(u)
 
     optimal_action = moves[utilities.index(max(utilities))]
@@ -122,37 +119,37 @@ def select_move_minimax(board, color, limit=sys.maxsize, caching=0):
 def alphabeta_min_node(board, color, alpha, beta, limit, caching=0, ordering=0):
     #IMPLEMENT
 
-    if board in minimax_val:
+    if caching == 1 and board in minimax_val:
         return minimax_val[board]
 
-    moves = get_possible_moves(board, color)
     next_color = 2 if color == 1 else 1
+
+    moves = get_possible_moves(board, next_color)
     terminal = (len(moves) == 0)
 
     if terminal or limit == 0:
-        return None, compute_utility(board, next_color)
+        return None, compute_utility(board, color)
     else:
         if ordering == 1:
             ordered_moves = []
             for move in moves:
-                successor_state = play_move(board, color, move[0], move[1])
-                ordered_moves.append((compute_utility(successor_state, next_color), move))
-            ordered_moves.sort()
+                successor_state = play_move(board, next_color, move[0], move[1])
+                ordered_moves.append((compute_utility(successor_state, color), move))
+            ordered_moves.sort(reverse=True)
             moves = []
             for utility_move in ordered_moves:
                 moves.append(utility_move[1])
 
-        betas = []
+        utilities = []
         for move in moves:
-            successor_state = play_move(board, color, move[0], move[1])
-            u = minimax_max_node(successor_state, next_color, limit - 1)[1]
+            successor_state = play_move(board, next_color, move[0], move[1])
+            u = alphabeta_max_node(successor_state, color, alpha, beta, limit - 1, caching, ordering)[1]
             beta = min(beta, u)
-            betas.append(beta)
-
+            utilities.append(u)
             if beta <= alpha:
                 break
 
-        best_move = moves[betas.index(min(betas))], beta
+        best_move = moves[utilities.index(min(utilities))], beta
         if caching == 1:
             minimax_val[board] = best_move  # cache minimax value
 
@@ -162,11 +159,10 @@ def alphabeta_min_node(board, color, alpha, beta, limit, caching=0, ordering=0):
 def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
     #IMPLEMENT
 
-    if board in minimax_val:
+    if caching == 1 and board in minimax_val:
         return minimax_val[board]
 
     moves = get_possible_moves(board, color)
-    next_color = 2 if color == 1 else 1
     terminal = (len(moves) == 0)
 
     if terminal or limit == 0:
@@ -177,22 +173,21 @@ def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
             for move in moves:
                 successor_state = play_move(board, color, move[0], move[1])
                 ordered_moves.append((compute_utility(successor_state, color), move))
-            ordered_moves.sort()
+            ordered_moves.sort(reverse=True)
             moves = []
             for utility_move in ordered_moves:
                 moves.append(utility_move[1])
 
-        alphas = []
+        utilities = []
         for move in moves:
             successor_state = play_move(board, color, move[0], move[1])
-            u = minimax_min_node(successor_state, next_color, limit - 1)[1]
+            u = alphabeta_min_node(successor_state, color, alpha, beta, limit-1, caching, ordering)[1]
             alpha = max(alpha, u)
-            alphas.append(alpha)
-
+            utilities.append(u)
             if beta <= alpha:
                 break
 
-        best_move = moves[alphas.index(max(alphas))], alpha
+        best_move = moves[utilities.index(max(utilities))], alpha
         if caching == 1:
             minimax_val[board] = best_move  # cache minimax value
 
@@ -219,12 +214,10 @@ def select_move_alphabeta(board, color, limit=sys.maxsize, caching=0, ordering=0
     beta = float("inf")
     moves = get_possible_moves(board, color)
     utilities = []
-    lim = limit if limit else sys.maxsize
-    next_color = 2 if color == 1 else 1
 
     for move in moves:
         successor_state = play_move(board, color, move[0], move[1])
-        u = alphabeta_min_node(successor_state, next_color, alpha, beta, lim, caching, ordering)[1]
+        u = alphabeta_min_node(successor_state, color, alpha, beta, limit, caching, ordering)[1]
         alpha = max(alpha, u)
         utilities.append(alpha)
 
