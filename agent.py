@@ -71,7 +71,7 @@ def minimax_max_node(board, color, limit, caching=0): #returns highest possible 
     next_color = 2 if color == 1 else 1
 
     if terminal or limit == 0:
-        return None, compute_utility(board, next_color)
+        return None, compute_utility(board, color)
     else:
         utilities = []
         for move in moves:
@@ -136,7 +136,7 @@ def alphabeta_min_node(board, color, alpha, beta, limit, caching=0, ordering=0):
             ordered_moves = []
             for move in moves:
                 successor_state = play_move(board, color, move[0], move[1])
-                ordered_moves.append((compute_utility(successor_state, color), move))
+                ordered_moves.append((compute_utility(successor_state, next_color), move))
             ordered_moves.sort()
             moves = []
             for utility_move in ordered_moves:
@@ -170,7 +170,7 @@ def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
     terminal = (len(moves) == 0)
 
     if terminal or limit == 0:
-        return None, compute_utility(board, next_color)
+        return None, compute_utility(board, color)
     else:
         if ordering == 1:
             ordered_moves = []
@@ -185,7 +185,7 @@ def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
         alphas = []
         for move in moves:
             successor_state = play_move(board, color, move[0], move[1])
-            u = minimax_min_node(successor_state, color, limit - 1)[1]
+            u = minimax_min_node(successor_state, next_color, limit - 1)[1]
             alpha = max(alpha, u)
             alphas.append(alpha)
 
