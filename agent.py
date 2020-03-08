@@ -28,28 +28,107 @@ def compute_utility(board, color):
 # Better heuristic value of board
 def compute_heuristic(board, color): #not implemented, optional
     #IMPLEMENT
+    size = len(board)
+
+    dark, light = get_score(board)
+    game_time = dark + light
+    EARLY = size // 3
+    MID =  size // 3 * 2
+
     current_score = compute_utility(board, color)
     mobility_score = len(get_possible_moves(board, color))
 
-    size = len(board)
     corners = [board[0][0], board[0][size-1], board[size-1][0], board[size-1][size-1]]
     corner_score = 0
     for corner in corners:
         if corner == color:
-            corner_score += 1
+            if game_time <= EARLY:
+                corner_score += 1
+            elif game_time <= MID:
+                corner_score += 5
+            else:
+                corner_score += 10
 
+    x_c_score = 0
+    x_c_squares = [(0, 1), (1, 0), (1, 1),
+                  (0, (size-1)-1), (1, size-1), (1, (size-1)-1),
+                  ((size-1)-1, 0), (size-1, 1), ((size-1)-1, 1),
+                  (size-1, (size-1)-1), ((size-1)-1, size-1), ((size-1)-1, (size-1)-1)]
+
+    for pos in x_c_squares:
+        if board[pos[0]][pos[1]] == color:
+            if game_time <= EARLY or game_time <= MID:
+                x_c_score -= 5
+            else:
+                x_c_score -= 1
+
+    wedge_score = 0
+    top, right, bot, left = None, None, None, None
+    for i in range(size):
+        if board[0][i] == color:
+            if top is None:
+                top = i
+            else:
+                if (i - top) % 2 != 0:
+                    wedge_score -= 10
+                top = None
+        if board[i][size-1] == color:
+            if right is None:
+                right = i
+            else:
+                if (i - right) % 2 != 0:
+                    wedge_score -= 10
+                right = None
+        if board[size-1][i] == color:
+            if bot is None:
+                bot = i
+            else:
+                if (i - bot) % 2 != 0:
+                    wedge_score -= 10
+                bot = None
+        if board[i][0] == color:
+            if left is None:
+                left = i
+            else:
+                if (i - left) % 2 != 0:
+                    wedge_score -= 10
+                left = None
+
+    stable_score = 0
     frontier_score = 0
-    for i in range(1, size-1):
-        for j in range(1, size-1):
-            if board[i][j] == color:
-                top = board[i-1][j] == color
-                bottom = board[i+1][j] == color
-                right = board[i][j+1] == color
-                left = board[i][j-1] == color
-                if top or bottom or right or left:
-                    frontier_score += 1
+    for i in range(size):
+        for j in range(size):
+            if i == 0 or j == 0 or i == size-1 or j == size-1:
+                if board[i][j] == color:
+                    if game_time <= EARLY:
+                        stable_score += 1
+                    elif game_time <= MID:
+                        stable_score += 5
+                    else:
+                        stable_score += 10
+            else:
+                if board[i][j] == color:
+                    top = board[i-1][j] == color
+                    bottom = board[i+1][j] == color
+                    right = board[i][j+1] == color
+                    left = board[i][j-1] == color
+                    if top or bottom or right or left:
+                        if game_time <= EARLY:
+                            frontier_score -= 1
+                        elif game_time <= MID:
+                            frontier_score -= 5
+                        else:
+                            frontier_score -= 10
 
-    total_score = current_score + mobility_score + corner_score + frontier_score
+    total_score = \
+        current_score + \
+        mobility_score + \
+        corner_score + \
+        frontier_score + \
+        wedge_score + \
+        stable_score + \
+        x_c_score
+
     return total_score
 
 ############ MINIMAX ###############################
@@ -155,7 +234,7 @@ def alphabeta_min_node(board, color, alpha, beta, limit, caching=0, ordering=0):
             ordered_moves = []
             for move in moves:
                 successor_state = play_move(board, next_color, move[0], move[1])
-                ordered_moves.append((compute_heuristic(successor_state, next_color), move))
+                ordered_moves.append((compute_utility(successor_state, next_color), move))
             ordered_moves.sort(reverse=True)
             moves = []
             for utility_move in ordered_moves:
@@ -195,7 +274,7 @@ def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
             ordered_moves = []
             for move in moves:
                 successor_state = play_move(board, color, move[0], move[1])
-                ordered_moves.append((compute_heuristic(successor_state, color), move))
+                ordered_moves.append((compute_utility(successor_state, color), move))
             ordered_moves.sort(reverse=True)
             moves = []
             for utility_move in ordered_moves:
@@ -241,6 +320,9 @@ def select_move_alphabeta(board, color, limit=sys.maxsize, caching=0, ordering=0
 
     start = time.time()
     optimal_action = None
+
+    if not limit > 0:
+        limit = sys.maxsize
     for i in range(1, limit):  # do iterative deepening
         if time.time() - start > 10:
             break
